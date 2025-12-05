@@ -1,0 +1,39 @@
+.form-control-dark {
+  border-color: var(--bs-gray);
+}
+.form-control-dark:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 .25rem rgba(255, 255, 255, .25);
+}
+
+.text-small {
+  font-size: 85%;
+}
+
+.dropdown-toggle:not(:focus) {
+  outline: 0;
+}
+
+code
+{
+  font-size: 15px;
+  color: #90b0a0;
+}
+
+/* Placeholder text styling - reduce opacity for better UX */
+::placeholder {
+    opacity: 0.2 !important;
+}
+
+::-webkit-input-placeholder { /* Chrome, Safari, Edge */
+    opacity: 0.2 !important;
+}
+
+::-moz-placeholder { /* Firefox 19+ */
+    opacity: 0.2 !important;
+}
+
+:-ms-input-placeholder { /* Internet Explorer 10-11 */
+    opacity: 0.2 !important;
+}
+

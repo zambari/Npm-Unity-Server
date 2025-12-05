@@ -122,5 +122,26 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+    // unlocks experimental publish status feature
+    'use_feature_publish_status' => false,
+    // unlocks experimental channel feature
+    'use_feature_channels' => false,
+    
+    // bundles can be edited by the user after creation if true
 
+    'enable_bundle_editing'=> false,
+
+    // Renames scope to category in the UI
+    'scope_label'=>'Category',
+
+    // when true, all packages wll be returned
+    'ignore_scope_when_searching'=>false,
+
+   //CSS classes for the main container div in views.
+    
+    'main_div_style' => 'p-2 p-md-2 mb-4 rounded text-body-emphasis bg-body-secondary',
+    // 'default_scope'=>'com.example'
+    'default_scope'=>'com.mycope',
+    'overrite_package_json'=>true,
+    
 ];

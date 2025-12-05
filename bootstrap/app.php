@@ -11,7 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Log all requests globally
+        $middleware->append(\App\Http\Middleware\RequestLogging::class);
+        
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminAuth::class,
+            'superuser' => \App\Http\Middleware\SuperUserAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

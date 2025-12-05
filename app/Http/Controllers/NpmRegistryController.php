@@ -4,163 +4,171 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Package;
+use App\Models\Release;
+use App\Models\ReleaseArtifact;
+use App\Models\PackageDependency;
+use App\Enums\ReleaseStatus;
+use App\Enums\PackageStatus;
 
 class NpmRegistryController extends Controller
 {
     /**
-     * Get dummy packages data
+     * Get packages from database
+     * Only includes published releases (release_status = PUBLISHED or NULL)
+     * Only includes published packages (status = PUBLISHED and not disabled)
      */
-    private function getDummyPackages()
+    private function getPackages()
     {
-        return [
-            'com.zamb.unity-test-package' => [
-                'name' => 'com.zamb.unity-test-package',
-                'description' => 'A test package for Unity3D package manager',
-                'versions' => [
-                    '1.0.0' => [
-                        'name' => 'com.zamb.unity-test-package',
-                        'version' => '1.0.0',
-                        'description' => 'A test package for Unity3D package manager',
-                        'dist' => [
-                            'tarball' => url('/com.zamb.unity-test-package/-/com.zamb.unity-test-package-1.0.0.tgz'),
-                            'shasum' => 'dummy-sha-sum',
-                        ],
-                        'maintainers' => [
-                            [
-                                'name' => 'test-maintainer',
-                                'email' => 'test@example.com',
-                            ],
-                        ],
-                        'repository' => [
-                            'type' => 'git',
-                            'url' => 'https://example.com/com.zamb.unity-test-package',
-                        ],
-                        'homepage' => 'https://example.com/com.zamb.unity-test-package',
-                        'keywords' => ['unity', 'test'],
-                        'author' => [
-                            'name' => 'Test Author',
-                            'email' => 'author@example.com',
-                        ],
-                        'license' => 'MIT',
-                        'readme' => '# Unity Test Package\n\nA test package for Unity3D.',
-                        'time' => now()->toIso8601String(),
+
+        // Load packages with their published releases and artifacts
+        $packages = Package::with([
+            'releases' => function ($query) {
+                // Only get published releases
+                $query->where(function ($q) {
+                    $q->where('release_status', ReleaseStatus::PUBLISHED)
+                      ->orWhereNull('release_status'); // NULL is treated as published
+                })
+                ->orderBy('create_time', 'desc');
+            },
+            'releases.artifacts',
+            'releases.dependencies.dependencyRelease.package',
+        ])
+        ->where('status', PackageStatus::PUBLISHED)
+        ->where('disabled', false)
+        ->get();
+        
+        $result = [];
+        
+        // Config: generate default version for packages with no versions
+        $generateDefaultVersion = config('registry.generate_default_version', true);
+        $defaultVersion = config('registry.default_version', '0.0.0');
+
+        foreach ($packages as $package) {
+            $versions = [];
+            $time = ['created' => $package->created_at->toIso8601String()];
+
+            // Process all published releases
+            foreach ($package->releases as $release) {
+                // Get the artifact for this release (should have at least one)
+                $artifact = $release->artifacts->first();
+                
+                // Skip releases without artifacts (unless default version)
+                if (!$artifact && !$generateDefaultVersion) {
+                    continue;
+                }
+
+                $versionTime = str_replace('+00:00', 'Z', $release->create_time->toIso8601String());
+                
+                // Build dependencies array in NPM format: { "bundle_id": "version" }
+                $dependencies = $this->formatDependencies($release);
+                
+                $versionData = [
+                    'name' => $package->bundle_id,
+                    'version' => $release->version,
+                    'dist' => [
+                        'tarball' => route('package.tarball', [
+                            'packageName' => $package->bundle_id, 
+                            'filename' => $package->bundle_id . '-' . $release->version . '.tgz'
+                        ]),
                     ],
-                    '1.1.0' => [
-                        'name' => 'com.zamb.unity-test-package',
-                        'version' => '1.1.0',
-                        'description' => 'A test package for Unity3D package manager - updated',
-                        'dist' => [
-                            'tarball' => url('/com.zamb.unity-test-package/-/com.zamb.unity-test-package-1.1.0.tgz'),
-                            'shasum' => 'dummy-sha-sum-2',
-                        ],
-                        'maintainers' => [
-                            [
-                                'name' => 'test-maintainer',
-                                'email' => 'test@example.com',
-                            ],
-                        ],
-                        'repository' => [
-                            'type' => 'git',
-                            'url' => 'https://example.com/com.zamb.unity-test-package',
-                        ],
-                        'homepage' => 'https://example.com/com.zamb.unity-test-package',
-                        'keywords' => ['unity', 'test'],
-                        'author' => [
-                            'name' => 'Test Author',
-                            'email' => 'author@example.com',
-                        ],
-                        'license' => 'MIT',
-                        'readme' => '# Unity Test Package\n\nA test package for Unity3D - version 1.1.0.',
-                        'time' => now()->toIso8601String(),
+                    'dependencies' => $dependencies,
+                    'time' => $versionTime,
+                ];
+                
+                // Add optional fields if they exist
+                // Note: Package model doesn't have author/license fields currently
+                // These can be added later if needed
+                
+                $versions[$release->version] = $versionData;
+                $time[$release->version] = $versionTime;
+            }
+
+            // Generate default version if package has no versions and feature is enabled
+            if (empty($versions) && $generateDefaultVersion) {
+                $defaultTime = str_replace('+00:00', 'Z', $package->created_at->toIso8601String());
+                $versions[$defaultVersion] = [
+                    'name' => $package->bundle_id,
+                    'version' => $defaultVersion,
+                    'dist' => [
+                        'tarball' => route('package.tarball', [
+                            'packageName' => $package->bundle_id, 
+                            'filename' => $package->bundle_id . '-' . $defaultVersion . '.tgz'
+                        ]),
                     ],
-                ],
+                    'dependencies' => [],
+                    'time' => $defaultTime,
+                ];
+                $time[$defaultVersion] = $defaultTime;
+            }
+
+            $time['modified'] = $package->updated_at->toIso8601String();
+
+            // Determine latest version
+            $latestVersion = null;
+            if (!empty($versions)) {
+                // Get the highest version number
+                uksort($versions, 'version_compare');
+                $latestVersion = array_key_last($versions);
+            } else {
+                $latestVersion = $generateDefaultVersion ? $defaultVersion : null;
+            }
+
+            // Skip packages with no versions (unless default version is enabled)
+            if (empty($versions) && !$generateDefaultVersion) {
+                continue;
+            }
+
+            $result[$package->bundle_id] = [
+                'name' => $package->bundle_id ,//product_name, // was bundle_id
+                'versions' => $versions,
                 'dist-tags' => [
-                    'latest' => '1.1.0',
+                    'latest' => $latestVersion,
                 ],
-                'time' => [
-                    'created' => now()->subDays(30)->toIso8601String(),
-                    '1.0.0' => now()->subDays(30)->toIso8601String(),
-                    '1.1.0' => now()->subDays(5)->toIso8601String(),
-                    'modified' => now()->subDays(5)->toIso8601String(),
-                ],
-                'maintainers' => [
-                    [
-                        'name' => 'test-maintainer',
-                        'email' => 'test@example.com',
-                    ],
-                ],
-                'author' => [
-                    'name' => 'Test Author',
-                    'email' => 'author@example.com',
-                ],
-                'repository' => [
-                    'type' => 'git',
-                    'url' => 'https://example.com/com.zamb.unity-test-package',
-                ],
-                'homepage' => 'https://example.com/com.zamb.unity-test-package',
-                'keywords' => ['unity', 'test'],
-                'license' => 'MIT',
-            ],
-            'com.zamb.helper-tools' => [
-                'name' => 'com.zamb.helper-tools',
-                'description' => 'Helper tools for Unity development',
-                'versions' => [
-                    '2.0.0' => [
-                        'name' => 'com.zamb.helper-tools',
-                        'version' => '2.0.0',
-                        'description' => 'Helper tools for Unity development',
-                        'dist' => [
-                            'tarball' => url('/com.zamb.helper-tools/-/com.zamb.helper-tools-2.0.0.tgz'),
-                            'shasum' => 'dummy-sha-sum-3',
-                        ],
-                        'maintainers' => [
-                            [
-                                'name' => 'helper-maintainer',
-                                'email' => 'helper@example.com',
-                            ],
-                        ],
-                        'repository' => [
-                            'type' => 'git',
-                            'url' => 'https://example.com/com.zamb.helper-tools',
-                        ],
-                        'homepage' => 'https://example.com/com.zamb.helper-tools',
-                        'keywords' => ['unity', 'tools', 'helper'],
-                        'author' => [
-                            'name' => 'Helper Author',
-                            'email' => 'helper-author@example.com',
-                        ],
-                        'license' => 'MIT',
-                        'readme' => '# Unity Helper Tools\n\nUseful tools for Unity development.',
-                        'time' => now()->toIso8601String(),
-                    ],
-                ],
-                'dist-tags' => [
-                    'latest' => '2.0.0',
-                ],
-                'time' => [
-                    'created' => now()->subDays(15)->toIso8601String(),
-                    '2.0.0' => now()->subDays(15)->toIso8601String(),
-                    'modified' => now()->subDays(15)->toIso8601String(),
-                ],
-                'maintainers' => [
-                    [
-                        'name' => 'helper-maintainer',
-                        'email' => 'helper@example.com',
-                    ],
-                ],
-                'author' => [
-                    'name' => 'Helper Author',
-                    'email' => 'helper-author@example.com',
-                ],
-                'repository' => [
-                    'type' => 'git',
-                    'url' => 'https://example.com/com.zamb.helper-tools',
-                ],
-                'homepage' => 'https://example.com/com.zamb.helper-tools',
-                'keywords' => ['unity', 'tools', 'helper'],
-                'license' => 'MIT',
-            ],
-        ];
+                'time' => $time,
+                'description' => $package->description,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Format dependencies for NPM registry format
+     * Returns: { "bundle_id": "version" }
+     */
+    private function formatDependencies(Release $release): array
+    {
+        $dependencies = [];
+        
+        // Load dependencies if not already loaded
+        if (!$release->relationLoaded('dependencies')) {
+            $release->load('dependencies.dependencyRelease.package');
+        }
+        
+        foreach ($release->dependencies as $dependency) {
+            if ($dependency->dependencyRelease && $dependency->dependencyRelease->package) {
+                // Internal dependency
+                $depPackage = $dependency->dependencyRelease->package;
+                $depVersion = $dependency->dependencyRelease->version;
+                $dependencies[$depPackage->bundle_id] = $depVersion;
+            } elseif ($dependency->external_dependency) {
+                // External dependency - format: "package@version" or just "package"
+                // For now, we'll try to parse it, but external dependencies might need special handling
+                $external = trim($dependency->external_dependency);
+                if (strpos($external, '@') !== false) {
+                    // Format: "package@version"
+                    list($pkg, $ver) = explode('@', $external, 2);
+                    $dependencies[trim($pkg)] = trim($ver);
+                } else {
+                    // Just package name, no version specified
+                    $dependencies[$external] = '*';
+                }
+            }
+        }
+        
+        return $dependencies;
     }
 
     /**
@@ -186,67 +194,39 @@ class NpmRegistryController extends Controller
         $query = $request->input('text', '');
         $size = (int) $request->input('size', 20);
         
-        $packages = $this->getDummyPackages();
+        $packages = $this->getPackages();
         $results = [];
 
-        foreach ($packages as $packageName => $packageData) {
-            // If there's a search query, filter by name
+        foreach ($packages as $bundleId => $packageData) {
+            // Skip packages with no versions (unless default version is enabled)
+            $generateDefaultVersion = config('registry.generate_default_version', true);
+            if (empty($packageData['versions']) && !$generateDefaultVersion) {
+                continue;
+            }
+            
+            // Skip if no latest version (shouldn't happen with default version, but safety check)
+            if (empty($packageData['dist-tags']['latest'])) {
+                continue;
+            }
+
+            // If there's a search query, filter by bundle_id
             // Unity searches with scope like "com.zamb" and packages are "com.zamb.*"
-            if ($query && stripos($packageName, $query) === false) {
+            if ($query && stripos($bundleId, $query) === false) {
                 continue;
             }
 
             $latestVersion = $packageData['dist-tags']['latest'];
-            $versionData = $packageData['versions'][$latestVersion];
             $updatedTime = $packageData['time']['modified'] ?? $packageData['time']['created'];
             // Convert to npm's format (Z instead of +00:00)
             $updatedTime = str_replace('+00:00', 'Z', $updatedTime);
-            
-            // Create sanitized name (convert dots to hyphens)
-            $sanitizedName = str_replace('.', '-', $packageName);
 
             $results[] = [
-                'downloads' => [
-                    'monthly' => 0,
-                    'weekly' => 0,
-                ],
-                'dependents' => 0,
-                'updated' => $updatedTime,
-                'searchScore' => 100.0,
                 'package' => [
-                    'name' => $packageName,
+                    'name' => $bundleId,
                     'version' => $latestVersion,
-                    'description' => $packageData['description'],
-                    'keywords' => $packageData['keywords'] ?? [],
                     'date' => $updatedTime,
-                    'sanitized_name' => $sanitizedName,
-                    'publisher' => [
-                        'username' => $packageData['maintainers'][0]['name'] ?? 'unknown',
-                        'email' => $packageData['maintainers'][0]['email'] ?? 'unknown@example.com',
-                    ],
-                    'maintainers' => array_map(function ($m) {
-                        return [
-                            'username' => $m['name'],
-                            'email' => $m['email'],
-                        ];
-                    }, $packageData['maintainers'] ?? []),
-                    'license' => $packageData['license'] ?? 'MIT',
-                    'links' => [
-                        'npm' => url('/' . $packageName),
-                        'repository' => $packageData['repository']['url'] ?? '',
-                        'homepage' => $packageData['homepage'] ?? '',
-                    ],
-                ],
-                'score' => [
-                    'final' => 100,
-                    'detail' => [
-                        'quality' => 1,
-                        'popularity' => 1,
-                        'maintenance' => 1,
-                    ],
-                ],
-                'flags' => [
-                    'insecure' => 0,
+                    'description' => $packageData['description'] ?? null,
+                    'links' => [],
                 ],
             ];
         }
@@ -294,7 +274,7 @@ class NpmRegistryController extends Controller
             'ip' => $request->ip(),
         ]);
 
-        $packages = $this->getDummyPackages();
+        $packages = $this->getPackages();
         
         // Log response details
         Log::info('NPM All Packages Response', [
@@ -312,14 +292,17 @@ class NpmRegistryController extends Controller
      * Handle individual package requests
      * GET /package-name returns full package metadata
      */
-    public function getPackage(Request $request, $packageName)
+    public function getPackage(Request $request, $bundle_id)
     {
+        $packages = $this->getPackages();
+        $packageData = $packages[$bundle_id];
+
         // Log incoming request details
         Log::info('NPM Individual Package Request', [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
             'path' => $request->path(),
-            'package_name' => $packageName,
+            'package_name' => $bundle_id,// $packageData['name'],
             'query_params' => $request->all(),
             'headers' => [
                 'user-agent' => $request->header('User-Agent'),
@@ -329,29 +312,17 @@ class NpmRegistryController extends Controller
             'ip' => $request->ip(),
         ]);
 
-        $packages = $this->getDummyPackages();
+       
         
-        if (!isset($packages[$packageName])) {
-            Log::warning('Package not found', ['package_name' => $packageName]);
+        if (!isset($packages[$bundle_id])) {
+            Log::warning('Package not found', ['package_name' => $bundle_id]);
             return response()->json(['error' => 'Package not found'], 404);
         }
 
-        $packageData = $packages[$packageName];
-        
-        // Convert time fields to Z format
-        $packageData['time'] = array_map(function($time) {
-            return str_replace('+00:00', 'Z', $time);
-        }, $packageData['time']);
-        
-        // Convert version time fields
-        foreach ($packageData['versions'] as $version => &$versionData) {
-            if (isset($versionData['time'])) {
-                $versionData['time'] = str_replace('+00:00', 'Z', $versionData['time']);
-            }
-        }
+  
         
         Log::info('NPM Individual Package Response', [
-            'package_name' => $packageName,
+            'package_name' => $packageData['name'],
             'versions' => array_keys($packageData['versions']),
         ]);
         
@@ -359,6 +330,90 @@ class NpmRegistryController extends Controller
             ->header('Access-Control-Allow-Origin', '*')
             ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
             ->header('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    /**
+     * Download package tarball
+     */
+    public function downloadTarball($bundle_id, $filename)
+    {
+        $package = Package::where('bundle_id', $bundle_id)
+            ->where('status', PackageStatus::PUBLISHED)
+            ->where('disabled', false)
+            ->first();
+        
+        if (!$package) {
+            return response()->json(['error' => 'Package not found'], 404);
+        }
+
+        // Extract version from filename (format: packageName-version.tgz)
+        // Remove .tgz extension and package name prefix
+        $version = str_replace($bundle_id . '-', '', str_replace('.tgz', '', $filename));
+        
+        $defaultVersion = config('registry.default_version', '0.0.0');
+        
+        // Check if this is the default version (no actual file exists)
+        if ($version === $defaultVersion) {
+            $release = $package->releases()
+                ->where('version', $version)
+                ->where(function ($query) {
+                    $query->where('release_status', ReleaseStatus::PUBLISHED)
+                          ->orWhereNull('release_status');
+                })
+                ->first();
+            
+            if (!$release) {
+                return response()->json([
+                    'error' => 'This is an unpublished placeholder version. No tarball available.',
+                    'version' => $version,
+                    'status' => 'unpublished'
+                ], 404);
+            }
+        }
+
+        // Find the release
+        $release = $package->releases()
+            ->where('version', $version)
+            ->where(function ($query) {
+                $query->where('release_status', ReleaseStatus::PUBLISHED)
+                      ->orWhereNull('release_status');
+            })
+            ->first();
+        
+        if (!$release) {
+            return response()->json(['error' => 'Version not found'], 404);
+        }
+
+        // Get the artifact for this release
+        $artifact = $release->artifacts()->first();
+        
+        if (!$artifact) {
+            return response()->json(['error' => 'Artifact not found for this version'], 404);
+        }
+
+        // Check if file exists in storage
+        // The artifact->url contains the relative path from storage
+        if (!Storage::disk('local')->exists($artifact->url)) {
+            Log::error('Tarball file not found in storage', [
+                'package' => $bundle_id,
+                'version' => $version,
+                'artifact_path' => $artifact->url,
+            ]);
+            return response()->json(['error' => 'Tarball file not found'], 404);
+        }
+
+        // Get the full path to the file
+        $filePath = Storage::disk('local')->path($artifact->url);
+        
+        $fileSize = filesize($filePath);
+        if ($fileSize === false) {
+            $fileSize = 0;
+        }
+        
+        return response()->download($filePath, $filename, [
+            'Content-Type' => 'application/x-tar',
+            'Content-Length' => $fileSize,
+        ]);
     }
 }
 
