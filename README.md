@@ -1,4 +1,4 @@
-## NPM-UNITY-SERVER 
+## NPM-UNITY-SERVER  - PHP only
 ---
 
  The whole thing is vibe-coded in a week. Useful for me.
@@ -40,12 +40,6 @@ As we all know, Unity uses their own built in Package Manager. Wouldn't it be co
 - Doesn't strictly follow the npm protocol - barely enough to pass by Unity.
 
 
-<img src="docs/img/release-edit-view.gif" alt="PackageManager" width="430"/>
-### Security
-
-No way to have a fully private server - by declaring a scope you ale claiming part of the namespace, so the server is always public (even if not listed in global register like keijro).
-User passwords are soot of protected, but super user needs to edit an .env flag, to be able to log in and reset password for another user. This thing is meant for a few people max, permission management would have to be added - maybe later. 
-
 <img src="docs/img/PackageManagement.gif" alt="PackageManager" width="430"/>
 
 
@@ -57,6 +51,7 @@ Typically running a package server is quite involved. Full blown package server 
 
 
 ### How does unity PackageManager work?
+
 
 NPM subset used by unity is very limited. Only really consists of making a request to:
 
@@ -81,8 +76,9 @@ Here, scopes with their display names are used in a hacky way as categories, inj
 The server itself does not respect scopes (unless a flag in config is enabled), will return all packages for every query, but Unity is likely to filter out responses anways, so in general it seems a good practice to use bundle ids from a parent scope to avoid packages not displaying.
 
 
-![Package manager](docs/img/PackageManagement.gif )
+<br>
 
+<img src="docs/img/release-edit-view.gif" alt="PackageManager" width="430"/>
 
 
 ### Setup
@@ -93,32 +89,41 @@ I wanted to try and learn something new, decided to finally take a look at Larav
 
 There was a lot of exploring the unknown, installing composer and other tools that 
 
-How to log in as super-user, create admin users, create scopes/categories.
+But now, in this form, I would _expect_ if you know how to use an ftp server, than the only challenge might be with the database setup, fortunately, AI has prepared that document in advance:
+
+[In depth instruction on database setup](docs/DATABASE_SETUP.md)
+
+Also, if you manage to see the site without errors, next steps are on how to log in as super-user, create admin users, create scopes/categories:
 
 [Authentication setup (AI)](docs/AUTHENTICATION_SETUP.md)
 
 
-### Usage
+
+
+### Hacky bits cases
 
 
 Main server endpoint can accept an extra token - this has zero real world applications but helped me force Unity to discard any cache and query the server as it it was a brand new url, helps it refresh better.
 
 `http://localhost/npm-unity-server/public/13/-/v1/search`
 
+
 ![Reloading url](docs/img/localhost_70.png )
 
 Uses "author " field in a hacky way - unity draws foldouts grouping packages coming from the same author, we can abuse that mechanism to have groups.
 
-### Hacky bits cases
 
 
 
+[I didn't ask for this AI summary of this project at early stage](docs/AI_SUMMARY.md)
 
 
-[AI summary of this project](docs/AI_SUMMARY.md)
+### Security
+
+No way to have a fully private server - by declaring a scope you ale claiming part of the namespace, so the server is always public (even if not listed in global register like keijro).
+User passwords are soot of protected, but super user needs to edit an .env flag, to be able to log in and reset password for another user. This thing is meant for a few people max, permission management would have to be added - maybe later. 
 
 
-[Unity package reference](docs/UNITY_PACKAGE_FORMAT.md)
 
 
 *) not fully working yet, star this repo but its probably too early to clone
