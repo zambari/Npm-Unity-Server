@@ -141,8 +141,12 @@ class ReleaseProcessingService
             // Step 8: Clean up temporary files
             $this->cleanup($tempDir, $tarballInfo['path']);
             
-            // Step 9: Update artifact with final path and mark as completed
+            // Step 9: Calculate SHA1 hash of the tarball
+            $shasum = sha1_file($finalFullPath);
+            
+            // Step 10: Update artifact with final path, shasum, and mark as completed
             $artifact->url = $finalPath;
+            $artifact->shasum = $shasum;
             $artifact->status = self::STATUS_COMPLETED;
             $artifact->save();
             

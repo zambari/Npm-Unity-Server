@@ -22,11 +22,11 @@ As we all know, Unity uses their own built in Package Manager. Wouldn't it be co
 
 
 
-### Features of this particular project.
+### Features of this npm server:
 
-- Can be placed on any long lasting PHP sever forever.
+- Can be placed on any old long-lasting PHP sever forever.
 - Can be hosted locally, no need for python, node.js etc
--you just upload a zip file - the server repacks it to tarball with  creates package.json - it added with your tarball to a .tgz with re-created .meta files if needed *) - 
+-you just upload a zip file - the server repacks it to tarball with  creates package.json - it added with your tarball to a .tgz with re-created .meta files if needed 
 - Developer oriented
 - Easy to use web editor, with features for declaring dependencies.
 - Prepares package.json for you - you just need to upload a zip.
@@ -44,6 +44,7 @@ As we all know, Unity uses their own built in Package Manager. Wouldn't it be co
 
 
 ### Back Story
+
 [Keijiro](https://private-user-images.githubusercontent.com/343936/399951228-3e97a9b7-e157-49e9-8998-e32280513e9e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjQ5NDc5MjIsIm5iZiI6MTc2NDk0NzYyMiwicGF0aCI6Ii8zNDM5MzYvMzk5OTUxMjI4LTNlOTdhOWI3LWUxNTctNDllOS04OTk4LWUzMjI4MDUxM2U5ZS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUxMjA1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MTIwNVQxNTEzNDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04NTg0ZTkyYmM0NTkwYjM1NmIwMTkxMjI2YTEyYTc1M2UwMDA0MDc4NWQ2MGM1YTIzNjIyYzk1NjNiNWQ2YTkyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.VZoqZsfCwy2HQWUs_xgOipuPOuW3nA7BUO6sr0UtGrU)
 A while ago I discovered that Keijiro had good success, with publishing packages using NPM. https://gist.github.com/keijiro/f8c7e8ff29bfe63d86b888901b82644c But all that messing around with node.js, not everyone can live javascript, and not everyone has root access hosting.
 
@@ -98,6 +99,9 @@ Also, if you manage to see the site without errors, next steps are on how to log
 [Authentication setup (AI)](docs/AUTHENTICATION_SETUP.md)
 
 
+### Next steps
+
+I will try to first use it, if its actually useful, we'll see.
 
 
 ### Hacky bits cases
@@ -124,6 +128,3 @@ No way to have a fully private server - by declaring a scope you ale claiming pa
 User passwords are soot of protected, but super user needs to edit an .env flag, to be able to log in and reset password for another user. This thing is meant for a few people max, permission management would have to be added - maybe later. 
 
 
-
-
-*) not fully working yet, star this repo but its probably too early to clone

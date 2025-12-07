@@ -3,7 +3,7 @@
 <main class="container">
     <div class={{config('app.main_div_style')}}>
         
-        <h1 class="mb-4">Experiments</h1>
+        <h1 class="mb-4">Experimental / Tools</h1>
 
         <div class="mt-4">
             <div class="alert alert-warning" role="alert">

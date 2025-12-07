@@ -7,8 +7,9 @@
         </div>
 
         <h1>Edit Release</h1>
-        <p class="text-muted">Package: <code>{{ $package->bundle_id }}</code></p>
-
+        <p class="text-muted">Package: <code>{{ $package->bundle_id }}</code><br>
+        Released at: <code>{{ $release->create_time ? $release->create_time->format('Y-m-d H:i:s') : 'N/A' }}</code><br>
+        Released as: <code>{{ $release->version }}</code></p>
         @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -127,6 +128,17 @@
                                     </div>
                                 </div>
 
+                                <div class="mb-3">
+                                    <label class="form-label">Checksum (SHA1)</label>
+                                    <div>
+                                        @if($artifact->shasum)
+                                            <code class="text-break">{{ $artifact->shasum }}</code>
+                                        @else
+                                            <span class="text-muted">Not calculated</span>
+                                        @endif
+                                    </div>
+                                </div>
+
                                 <div>
                                     @if(isset($artifactInfo['uploaded_exists']) && $artifactInfo['uploaded_exists'])
                                         <a href="{{ route('packages.releases.download', ['package' => $package->bundle_id, 'release' => $release->id]) }}" 
@@ -215,6 +227,17 @@
                                         <small class="text-muted">({{ number_format($artifactInfo['processed_size_bytes']) }} bytes)</small>
                                     @else
                                         <span class="text-danger">File not found</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Checksum (SHA1)</label>
+                                <div>
+                                    @if($artifact->shasum)
+                                        <code class="text-break">{{ $artifact->shasum }}</code>
+                                    @else
+                                        <span class="text-muted">Not calculated</span>
                                     @endif
                                 </div>
                             </div>

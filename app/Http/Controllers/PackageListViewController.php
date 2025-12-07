@@ -319,17 +319,21 @@ class PackageListViewController extends Controller
                 // The file will remain in incoming/{bundle_id}/{date}/ for potential reprocessing
                 // $storageService->deleteFile($storageInfo['path']); // Commented out to allow reprocessing
                 
+                // Get file size and full path
+                $finalFullPath = $storageService->getFullPath($finalPath);
+                
+                // Calculate SHA1 hash of the tarball
+                $shasum = sha1_file($finalFullPath);
+                
                 // Update artifact
                 $artifact->url = $finalPath;
+                $artifact->shasum = $shasum;
                 $artifact->status = ReleaseProcessingService::STATUS_COMPLETED;
                 $artifact->save();
                 
                 // Calculate processing time (just file move, very fast)
                 $processingEndTime = microtime(true);
                 $processingDuration = round($processingEndTime - $processingStartTime, 2);
-                
-                // Get file size and full path
-                $finalFullPath = $storageService->getFullPath($finalPath);
                 $fileSize = file_exists($finalFullPath) ? filesize($finalFullPath) : 0;
                 $fileSizeFormatted = $this->formatBytes($fileSize);
                 

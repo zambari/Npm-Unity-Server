@@ -175,7 +175,9 @@ class PackageResponseController extends Controller
                 
                 // Integrity/shasum (if calculated/stored)
                 // $versionData['dist']['integrity'] = 'sha512-...';
-                // $versionData['dist']['shasum'] = '...';
+                if ($primaryArtifact->shasum) {
+                    $versionData['dist']['shasum'] = $primaryArtifact->shasum;
+                }
                 
                 // Tarball URL - construct using bundle_id + version + date format
                 if ($primaryArtifact->url) {

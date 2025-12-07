@@ -15,6 +15,7 @@ class ReleaseArtifact extends Model
         'upload_name',
         'url_meta',
         'upload_date',
+        'shasum',
     ];
 
     protected $casts = [

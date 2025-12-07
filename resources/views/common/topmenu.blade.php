@@ -35,7 +35,7 @@
                 <li><a href="{{ route('packages.index') }}" class="nav-link px-2">Packages</a></li>
                 <li><a href="{{ route('admin.users') }}" class="nav-link px-2">Users</a></li>
                 <li><a href="{{ route('admin.scopes') }}" class="nav-link px-2">{{ config('app.scope_label') }}</a></li>
-                <li><a href="{{ route('admin.experiments') }}" class="nav-link px-2">Experiments</a></li>
+                <li><a href="{{ route('admin.experiments') }}" class="nav-link px-2">Database</a></li>
             </ul>
             <div class="col-md-3 text-end">
                 <span class="me-2">{{ session('admin_email') }}</span>
