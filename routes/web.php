@@ -79,6 +79,7 @@ Route::middleware(['superuser'])->prefix('admin')->name('admin.')->group(functio
     Route::get('/databaseadmin/download-dump', [\App\Http\Controllers\DatabaseAdminController::class, 'downloadDump'])->name('databaseadmin.download-dump');
     Route::post('/databaseadmin/restore-dump', [\App\Http\Controllers\DatabaseAdminController::class, 'restoreDump'])->name('databaseadmin.restore-dump');
     Route::post('/databaseadmin/clear-data', [\App\Http\Controllers\DatabaseAdminController::class, 'clearData'])->name('databaseadmin.clear-data');
+    Route::post('/databaseadmin/clear-packages-data', [\App\Http\Controllers\DatabaseAdminController::class, 'clearPackagesData'])->name('databaseadmin.clear-packages-data');
     Route::post('/databaseadmin/nuke-data', [\App\Http\Controllers\DatabaseAdminController::class, 'nukeData'])->name('databaseadmin.nuke-data');
     Route::post('/databaseadmin/delete-incoming-package', [\App\Http\Controllers\DatabaseAdminController::class, 'deleteIncomingPackage'])->name('databaseadmin.delete-incoming-package');
     Route::post('/databaseadmin/delete-all-incoming-but-latest', [\App\Http\Controllers\DatabaseAdminController::class, 'deleteAllIncomingButLatest'])->name('databaseadmin.delete-all-incoming-but-latest');

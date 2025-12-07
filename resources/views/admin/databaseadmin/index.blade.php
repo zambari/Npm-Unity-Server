@@ -199,11 +199,20 @@
                     </div>
                     <div class="row g-3">
                         <div class="col-md-4">
+                            <p class="card-text">Delete all packages, releases, release artifacts, and storage. Preserves users and scopes.</p>
+                            <form method="POST" action="{{ route('admin.databaseadmin.clear-packages-data') }}" onsubmit="return confirm('⚠️ WARNING: This will permanently delete ALL packages, releases, release artifacts, and storage files. Users and scopes will be preserved. This action cannot be undone! Are you sure?');">
+                                @csrf
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="bi bi-trash3"></i> Clear Packages & Storage
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-4">
                             <p class="card-text">Delete all users, packages, scopes, releases, and release artifacts.</p>
                             <form method="POST" action="{{ route('admin.databaseadmin.clear-data') }}" onsubmit="return confirm('⚠️ WARNING: This will permanently delete ALL users, packages, scopes, releases, and release artifacts. This action cannot be undone! Are you absolutely sure?');">
                                 @csrf
                                 <button type="submit" class="btn btn-warning">
-                                    <i class="bi bi-trash3"></i> Clear
+                                    <i class="bi bi-trash3"></i> Clear All
                                 </button>
                             </form>
                         </div>

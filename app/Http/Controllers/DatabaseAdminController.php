@@ -564,6 +564,88 @@ class DatabaseAdminController extends Controller
     }
 
     /**
+     * Clear packages, releases, release artifacts, and storage (preserves users and scopes)
+     */
+    public function clearPackagesData()
+    {
+        try {
+            DB::beginTransaction();
+            
+            // Disable foreign key checks temporarily (for MySQL/MariaDB)
+            if (config('database.default') !== 'sqlite') {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            }
+            
+            // Delete in order to respect foreign key constraints
+            // 1. Release artifacts (depends on releases)
+            DB::table('release_artifacts')->truncate();
+            
+            // 2. Releases (depends on packages)
+            DB::table('releases')->truncate();
+            
+            // 3. Package dependencies (depends on packages)
+            DB::table('package_dependencies')->truncate();
+            
+            // 4. Meta files (depends on packages/releases)
+            DB::table('meta_files')->truncate();
+            
+            // 5. Download history (depends on releases)
+            DB::table('download_history')->truncate();
+            
+            // 6. Packages (depends on scopes, but we're keeping scopes)
+            DB::table('packages')->truncate();
+            
+            // Re-enable foreign key checks
+            if (config('database.default') !== 'sqlite') {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            }
+            
+            DB::commit();
+            
+            // Clear storage directories
+            $incomingPath = storage_path('app/private/incoming');
+            $processedPath = storage_path('app/private/incoming_processed');
+            
+            $storageCleared = [];
+            if (is_dir($incomingPath)) {
+                File::deleteDirectory($incomingPath);
+                File::makeDirectory($incomingPath, 0755, true);
+                $storageCleared[] = 'incoming';
+            }
+            
+            if (is_dir($processedPath)) {
+                File::deleteDirectory($processedPath);
+                File::makeDirectory($processedPath, 0755, true);
+                $storageCleared[] = 'processed';
+            }
+            
+            $message = 'All packages, releases, release artifacts, and related data have been deleted.';
+            if (!empty($storageCleared)) {
+                $message .= ' Storage directories (' . implode(', ', $storageCleared) . ') have been cleared.';
+            }
+            $message .= ' Users and scopes have been preserved.';
+            
+            return redirect()->route('admin.databaseadmin')
+                ->with('success', $message);
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Re-enable foreign key checks in case of error
+            if (config('database.default') !== 'sqlite') {
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                } catch (\Exception $fkException) {
+                    // Ignore if already enabled
+                }
+            }
+            
+            return redirect()->back()
+                ->withErrors(['error' => 'Failed to delete data: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * NUKE: Drop all tables from the database
      */
     public function nukeData()
