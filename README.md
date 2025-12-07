@@ -92,6 +92,51 @@ While this looks very simple on paper, actually implementing it required jumping
 
 ### Managing Tarballs and package.json  
 
+Unity requires (or at least prefers) few things to match in order to properly handle a package. Took me a long while to figure out the details needed to make it work.
+- Package bundle id needs to be in the custom scope (reverse dns notation, if the scope is `com.abc.package`, it won't list `com.cde.packages`) declared for scoped registry.
+- It needs to have a release (Unity won't list packages without releases).
+- Version listed via search result should exist in the detailed package info.
+- In the detailed package info, there should be a pointer to the last version
+- In the version tagged latest, there should be a dist section with link to the tarball AND a SHA1 checksum (I spent at least two days debugging that - while you can omit many npm fields, the checksum is mandatory and unity will give cryptic error if you omit it )
+``` 
+"dist-tags": {
+       "latest": "0.2.0"
+ },
+ "versions": {
+    "0.2.0": {
+        "dist": {
+                "shasum": "f5eb29590c848c1e07b6c7d7c620e38215c9da63",
+                "tarball": "http://localhost/npm-unity-server/public/com.example2.myexample.tgz"
+                }
+        }
+    }
+```
+- Tarball (.tgz archive) should have a root 'package' folder, inside it there needs to be a `package.json` file, which should have the matching version and bundle id. This is also a place where we can declare dependencies. 
+``` 
+{
+    "name": "com.example2.myexample",
+    "version": "0.3.0",
+    "displayName": "My Company Packages",
+    "description": "example",
+    "keywords": [
+        "unity"
+    ],
+    "dependencies": [],
+    "author": {
+        "name": "Example Package Collection"
+    }
+}
+``` 
+In order to simplyfy the process, NPM-Unity-Server accepts a ZIP file as an input. 
+- Uploaded file is stored in `/storage/app/private/incoming/com.myscope.mypackage/uploaded_filename_date.zip`
+- It unpacks it.
+- Adds a README.MD (if provided with the package).
+- Aggregates a CHANGELOG.MD (from non-empty release changelogs).
+- Adds .meta files for any files that don't have them, when it creates a meta file, it stores the uuid in the database, so they can be consistent (otherwise Unity will spam console with errors)
+- It creates a package.json based on current version and other metadata.
+- If no dependency override has been declared for this release, it tries to go back to any earlier version that might have declared dependencies, copies them and adds to package.json
+- Finally packs the release artifact .tgz into `/storage/app/private/incoming_processed/com.myscope.mypackage-1.2.3-date.tgz`
+- Release artifact is linked to the release - when queried for package details, it will generate downloadable urls for each release for which an artifact exists.
 
 ### Limitations:
 
