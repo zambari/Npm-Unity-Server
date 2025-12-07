@@ -587,6 +587,16 @@ class ReleaseProcessingService
         // Remove trailing newlines
         $changelogContent = rtrim($changelogContent);
         
+        // Skip writing changelog.md if no releases have changelog information
+        if (empty($changelogContent)) {
+            Log::info('Skipping CHANGELOG.md creation - no changelog information available', [
+                'changelog_path' => $changelogPath,
+                'package_id' => $package->id,
+                'releases_count' => $releases->count(),
+            ]);
+            return;
+        }
+        
         file_put_contents($changelogPath, $changelogContent);
         
         Log::info('Created CHANGELOG.md', [
