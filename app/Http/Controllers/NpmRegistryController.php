@@ -128,6 +128,8 @@ class NpmRegistryController extends Controller
                 ],
                 'time' => $time,
                 'description' => $package->description,
+                'repository_url' => $package->repository_url,
+                'homepage_url' => $package->homepage_url,
             ];
         }
 
@@ -226,7 +228,10 @@ class NpmRegistryController extends Controller
                     'version' => $latestVersion,
                     'date' => $updatedTime,
                     'description' => $packageData['description'] ?? null,
-                    'links' => [],
+                    'links' => [
+                        'homepage' => $packageData['homepage_url'] ?? '',
+                        'repository' => $packageData['repository_url'] ?? '',
+                    ],
                 ],
             ];
         }

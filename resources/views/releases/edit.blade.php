@@ -7,6 +7,8 @@
         </div>
 
         <h1>Edit Release</h1>
+        <x-read-only-warning />
+
         <p class="text-muted">Package: <code>{{ $package->bundle_id }}</code><br>
         Released at: <code>{{ $release->create_time ? $release->create_time->format('Y-m-d H:i:s') : 'N/A' }}</code><br>
         Released as: <code>{{ $release->version }}</code></p>

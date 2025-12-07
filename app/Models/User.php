@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'disabled',
+        'privileges',
     ];
 
     protected $hidden = [
@@ -49,6 +50,19 @@ class User extends Authenticatable
     {
         $salt = env('PASSWORD_SALT', 'default-salt-change-in-env');
         return Hash::check($password . $salt, $this->password);
+    }
+
+    /**
+     * Check if user is read-only (privileges contains the read-only token)
+     * If privileges is null or empty, user has edit access (default)
+     */
+    public function readOnlyUser(): bool
+    {
+        if (empty($this->privileges)) {
+            return false; // No privileges set means edit is enabled
+        }
+        $readOnlyToken = config('app.read_only_privilege_token', 'NONE');
+        return str_contains($this->privileges, $readOnlyToken);
     }
 }
 

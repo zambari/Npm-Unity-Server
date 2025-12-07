@@ -13,6 +13,8 @@ class Package extends Model
         'bundle_id',
         'product_name',
         'description',
+        'repository_url',
+        'homepage_url',
         'status',
         'disabled',
         'created_by',

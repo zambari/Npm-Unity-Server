@@ -16,7 +16,7 @@ class AdminAuth
     public function handle(Request $request, Closure $next): Response
     {
         if (!session('admin_authenticated')) {
-            return redirect()->route('publish.login');
+            return redirect('/loginform');
         }
 
         return $next($request);

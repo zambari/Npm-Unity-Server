@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'NPM'),
 
     /*
     |--------------------------------------------------------------------------
@@ -129,7 +129,7 @@ return [
     
     // bundles can be edited by the user after creation if true
 
-    'enable_bundle_editing'=> false,
+    'enable_bundle_editing'=> true,
 
     // Renames scope to category in the UI
     'scope_label'=>'Category',
@@ -143,5 +143,18 @@ return [
     // 'default_scope'=>'com.example'
     'default_scope'=>'com.mycope',
     'overrite_package_json'=>true,
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Read-Only Privilege Token
+    |--------------------------------------------------------------------------
+    |
+    | This token is used in the user privileges field to indicate read-only
+    | access. Users with this token in their privileges field will have
+    | edit access disabled. You can customize this token via the .env file.
+    |
+    */
+
+    'read_only_privilege_token' => env('READ_ONLY_PRIVILEGE_TOKEN', 'NONE'),
     
 ];

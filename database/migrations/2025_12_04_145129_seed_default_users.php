@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 return new class extends Migration
 {
@@ -16,6 +17,22 @@ return new class extends Migration
         DB::table('scopes')->insert([
             'scope' => 'com.example.*',
             'display_name' => 'Example Package Collection',
+        ]);
+
+        // Insert default read-only guest user
+        $salt = env('PASSWORD_SALT', 'default-salt-change-in-env');
+        $password = Hash::make('guest' . $salt);
+        
+        DB::table('users')->insert([
+            'name' => 'Curious Guest',
+            'email' => 'guest@guest.com',
+            'email_verified_at' => null,
+            'password' => $password,
+            'disabled' => 0,
+            'privileges' => 'NONE',
+            'remember_token' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 
@@ -52,6 +69,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::table('users')->whereIn('email', ['zambari@gmail.com', 'test@test.com'])->delete();
+        DB::table('users')->whereIn('email', ['zambari@gmail.com', 'test@test.com', 'guest@guest.com'])->delete();
     }
 };

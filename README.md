@@ -116,7 +116,7 @@ The server itself does not respect scopes (unless a flag in config is enabled), 
 
 <img src="docs/img/release-edit-view.gif" alt="PackageManager" width="430"/>
 
-
+If you make a mistake when creating a package, and it's bundle id is not contained within a specified scope, edit `app.php` and change `'enable_bundle_editing'=> true,` - with this setting you can edit the bundle id of existing packages. 
 
 ### Security
 

@@ -67,5 +67,38 @@ class UserController extends Controller
 
         return redirect()->route('admin.users')->with('success', 'Password has been reset successfully.');
     }
+
+    /**
+     * Toggle user edit privileges
+     */
+    public function toggleEditPrivilege(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $readOnlyToken = config('app.read_only_privilege_token', 'NONE');
+        
+        if ($user->readOnlyUser()) {
+            // User is read-only, enable edit by removing the read-only token from privileges
+            $privileges = $user->privileges;
+            $privileges = str_replace($readOnlyToken, '', $privileges);
+            $privileges = trim($privileges);
+            $user->privileges = empty($privileges) ? null : $privileges;
+            $status = 'enabled';
+        } else {
+            // User has edit access, disable by adding the read-only token to privileges
+            $privileges = $user->privileges ?? '';
+            $privileges = trim($privileges);
+            if (!empty($privileges)) {
+                $privileges .= ' ' . $readOnlyToken;
+            } else {
+                $privileges = $readOnlyToken;
+            }
+            $user->privileges = $privileges;
+            $status = 'disabled';
+        }
+        
+        $user->save();
+
+        return redirect()->route('admin.users')->with('success', "User edit access has been {$status}.");
+    }
 }
 

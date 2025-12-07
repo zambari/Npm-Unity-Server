@@ -149,11 +149,14 @@ class PackageResponseController extends Controller
             // $versionData['license'] = 'Unlicense'; // Uncomment and set from package data if available
             $versionData['name'] = $package->bundle_id;
             
-            // Repository (if stored in package or release)
-            // $versionData['repository'] = [
-            //     'type' => 'git',
-            //     'url' => 'git+https://github.com/example/repo.git'
-            // ];
+            // Repository
+            $versionData['repository'] = [
+                'type' => 'git',
+                'url' => $package->repository_url ?? ''
+            ];
+            
+            // Homepage
+            $versionData['homepage'] = $package->homepage_url ?? '';
             
             // Unity version info (if stored)
             // $versionData['unity'] = '2019.4';
@@ -161,9 +164,8 @@ class PackageResponseController extends Controller
             
             $versionData['version'] = $version;
             
-            // Bugs/homepage (if stored)
+            // Bugs (if stored)
             // $versionData['bugs'] = ['url' => 'https://github.com/example/repo/issues'];
-            // $versionData['homepage'] = 'https://github.com/example/repo#readme';
             
             $versionData['_id'] = $package->bundle_id . '@' . $version;
             // $versionData['_nodeVersion'] = '10.19.0'; // Optional

@@ -24,8 +24,17 @@ class PackageListViewController extends Controller
     /**
      * Display a listing of packages
      */
-    public function index()
+    public function index(Request $request)
     {
+        Log::info('Package list view accessed', [
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user() ? Auth::user()->email : null,
+            'is_super_user' => session('super_user', false),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
         $packages = Package::with(['scope', 'creator', 'latestPublishedRelease', 'releases' => function($q) {
                 $q->orderBy('create_time', 'desc');
             }])
@@ -45,8 +54,17 @@ class PackageListViewController extends Controller
     /**
      * Show the form for creating a new package
      */
-    public function create()
+    public function create(Request $request)
     {
+        Log::info('Package create view accessed', [
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user() ? Auth::user()->email : null,
+            'is_super_user' => session('super_user', false),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
         $scopes = Scope::orderBy('scope', 'asc')->get();
         return view('packages.create', compact('scopes'));
     }
@@ -56,6 +74,8 @@ class PackageListViewController extends Controller
      */
     public function store(Request $request)
     {
+        $this->checkReadOnly();
+        
         $request->validate([
             'bundle_id' => [
                 'required',
@@ -66,12 +86,20 @@ class PackageListViewController extends Controller
             ],
             'product_name' => 'nullable|string|max:45',
             'description' => 'nullable|string|max:255',
-            'scope_id' => 'nullable|exists:scopes,id'//,
+            'repository-url' => 'nullable|url|max:500',
+            'homepage-url' => 'nullable|url|max:500',
+            'scope_id' => 'nullable|exists:scopes,id',
+            'readme_file' => 'nullable|file|mimes:md,txt|max:10240', // 10MB max
             // 'status' => 'required|integer|in:' . implode(',', array_keys(PackageStatus::all())),
         ], [
             'bundle_id.required' => 'Bundle ID is required.',
             'bundle_id.unique' => 'This bundle ID already exists.',
             'bundle_id.regex' => 'Bundle ID must be a valid package identifier (e.g., com.example.mypackage).',
+            'repository-url.url' => 'Repository URL must be a valid URL.',
+            'homepage-url.url' => 'Homepage URL must be a valid URL.',
+            'readme_file.file' => 'The README file must be a valid file.',
+            'readme_file.mimes' => 'The README file must be a .md or .txt file.',
+            'readme_file.max' => 'The README file may not be larger than 10MB.',
             // 'status.required' => 'Status is required.',
             'status.in' => 'Invalid status value.',
         ]);
@@ -80,10 +108,31 @@ class PackageListViewController extends Controller
         $package->bundle_id = trim($request->bundle_id);
         $package->product_name = $request->product_name ? trim($request->product_name) : null;
         $package->description = $request->description ? trim($request->description) : null;
+        $package->repository_url = $request->input('repository-url') ? trim($request->input('repository-url')) : null;
+        $package->homepage_url = $request->input('homepage-url') ? trim($request->input('homepage-url')) : null;
         $package->status = $request->status;
         $package->scope_id = $request->scope_id;
         $package->created_by = Auth::id();
         $package->save();
+
+        // Handle README.md file upload
+        if ($request->hasFile('readme_file')) {
+            $readmeFile = $request->file('readme_file');
+            $readmePath = "incoming/{$package->bundle_id}/README.md";
+            
+            // Ensure the directory exists
+            Storage::disk('local')->makeDirectory("incoming/{$package->bundle_id}");
+            
+            // Store the file as README.md
+            Storage::disk('local')->put($readmePath, file_get_contents($readmeFile->getRealPath()));
+            
+            Log::info('README.md uploaded for package', [
+                'package_id' => $package->id,
+                'bundle_id' => $package->bundle_id,
+                'readme_path' => $readmePath,
+                'user_id' => Auth::id(),
+            ]);
+        }
 
         // Create initial release if requested
         if ($request->has('add_initial_release') && $request->add_initial_release) {
@@ -115,8 +164,20 @@ class PackageListViewController extends Controller
     /**
      * Display the specified package
      */
-    public function show(Package $package)
+    public function show(Request $request, Package $package)
     {
+        Log::info('Package detail view accessed', [
+            'package_id' => $package->id,
+            'bundle_id' => $package->bundle_id,
+            'package_name' => $package->product_name,
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user() ? Auth::user()->email : null,
+            'is_super_user' => session('super_user', false),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
         $package->load('scope', 'creator', 'releases.user');
         
         // Load the latest published release
@@ -143,11 +204,28 @@ class PackageListViewController extends Controller
     /**
      * Show the form for editing the specified package
      */
-    public function edit(Package $package)
+    public function edit(Request $request, Package $package)
     {
+        Log::info('Package edit view accessed', [
+            'package_id' => $package->id,
+            'bundle_id' => $package->bundle_id,
+            'package_name' => $package->product_name,
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user() ? Auth::user()->email : null,
+            'is_super_user' => session('super_user', false),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
         $package->load('scope', 'creator', 'releases.user');
         $scopes = Scope::orderBy('scope', 'asc')->get();
-        return view('packages.edit', compact('package', 'scopes'));
+        
+        // Check if README.md exists
+        $readmePath = "incoming/{$package->bundle_id}/README.md";
+        $readmeExists = Storage::disk('local')->exists($readmePath);
+        
+        return view('packages.edit', compact('package', 'scopes', 'readmeExists'));
     }
 
     /**
@@ -155,15 +233,25 @@ class PackageListViewController extends Controller
      */
     public function update(Request $request, Package $package)
     {
+        $this->checkReadOnly();
+        
         $validationRules = [
             'product_name' => 'nullable|string|max:45',
             'description' => 'nullable|string|max:255',
+            'repository-url' => 'nullable|url|max:500',
+            'homepage-url' => 'nullable|url|max:500',
             'status' => 'nullable|integer|in:' . implode(',', array_keys(PackageStatus::all())),
             'scope_id' => 'nullable|exists:scopes,id',
+            'readme_file' => 'nullable|file|mimes:md,txt|max:10240', // 10MB max
         ];
 
         $validationMessages = [
+            'repository-url.url' => 'Repository URL must be a valid URL.',
+            'homepage-url.url' => 'Homepage URL must be a valid URL.',
             'status.in' => 'Invalid status value.',
+            'readme_file.file' => 'The README file must be a valid file.',
+            'readme_file.mimes' => 'The README file must be a .md or .txt file.',
+            'readme_file.max' => 'The README file may not be larger than 10MB.',
         ];
 
         // Only validate bundle_id if bundle editing is enabled
@@ -189,11 +277,32 @@ class PackageListViewController extends Controller
 
         $package->product_name = $request->product_name ? trim($request->product_name) : null;
         $package->description = $request->description ? trim($request->description) : null;
+        $package->repository_url = $request->input('repository-url') ? trim($request->input('repository-url')) : null;
+        $package->homepage_url = $request->input('homepage-url') ? trim($request->input('homepage-url')) : null;
         if ($request->has('status')) {
             $package->status = $request->status;
         }
         $package->scope_id = $request->scope_id ?: null;
         $package->save();
+
+        // Handle README.md file upload
+        if ($request->hasFile('readme_file')) {
+            $readmeFile = $request->file('readme_file');
+            $readmePath = "incoming/{$package->bundle_id}/README.md";
+            
+            // Ensure the directory exists
+            Storage::disk('local')->makeDirectory("incoming/{$package->bundle_id}");
+            
+            // Store the file as README.md
+            Storage::disk('local')->put($readmePath, file_get_contents($readmeFile->getRealPath()));
+            
+            Log::info('README.md uploaded for package', [
+                'package_id' => $package->id,
+                'bundle_id' => $package->bundle_id,
+                'readme_path' => $readmePath,
+                'user_id' => Auth::id(),
+            ]);
+        }
 
         return redirect()->route('packages.show', $package->bundle_id)
             ->with('success', 'Package updated successfully.');
@@ -202,8 +311,20 @@ class PackageListViewController extends Controller
     /**
      * Show the form for creating a new release for a package
      */
-    public function createRelease(Package $package)
+    public function createRelease(Request $request, Package $package)
     {
+        Log::info('Release create view accessed', [
+            'package_id' => $package->id,
+            'bundle_id' => $package->bundle_id,
+            'package_name' => $package->product_name,
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user() ? Auth::user()->email : null,
+            'is_super_user' => session('super_user', false),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
         // Check if this is the first release (no releases exist yet)
         $isFirstRelease = $package->releases()->count() === 0;
         
@@ -221,7 +342,15 @@ class PackageListViewController extends Controller
             }
         }
         
-        return view('releases.create', compact('package', 'isFirstRelease', 'ancestorRelease', 'hasAncestorReferences', 'latestRelease'));
+        // Check if README.md exists in incoming folder
+        $readmePath = "incoming/{$package->bundle_id}/README.md";
+        $readmeExists = Storage::disk('local')->exists($readmePath);
+        $readmeSize = 0;
+        if ($readmeExists) {
+            $readmeSize = Storage::disk('local')->size($readmePath);
+        }
+        
+        return view('releases.create', compact('package', 'isFirstRelease', 'ancestorRelease', 'hasAncestorReferences', 'latestRelease', 'readmeExists', 'readmeSize'));
     }
 
     /**
@@ -229,6 +358,8 @@ class PackageListViewController extends Controller
      */
     public function storeRelease(Request $request, Package $package)
     {
+        $this->checkReadOnly();
+        
         $request->validate([
             'version' => 'required|string|max:45',
             'channel' => 'nullable|string|in:' . implode(',', Channel::all()),
@@ -384,12 +515,14 @@ class PackageListViewController extends Controller
                 
                 // Process the release: unpack, add package.json, create tarball
                 $processingService = new ReleaseProcessingService();
+                $includeReadme = $request->has('include_readme') && $request->include_readme;
                 $processedInfo = $processingService->processRelease(
                     $storageInfo['path'],
                     $package,
                     $release,
                     $artifact,
-                    trim($request->version)
+                    trim($request->version),
+                    $includeReadme
                 );
                 
                 // Calculate processing time
@@ -582,12 +715,26 @@ class PackageListViewController extends Controller
     /**
      * Show the form for editing a release
      */
-    public function editRelease(Package $package, Release $release)
+    public function editRelease(Request $request, Package $package, Release $release)
     {
         // Ensure the release belongs to the package
         if ($release->package_id !== $package->id) {
             abort(404);
         }
+        
+        Log::info('Release edit view accessed', [
+            'package_id' => $package->id,
+            'bundle_id' => $package->bundle_id,
+            'package_name' => $package->product_name,
+            'release_id' => $release->id,
+            'release_version' => $release->version,
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user() ? Auth::user()->email : null,
+            'is_super_user' => session('super_user', false),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
         
         $release->load(['artifacts', 'dependencies']);
         $storageService = new ReleaseStorageService();
@@ -682,6 +829,8 @@ class PackageListViewController extends Controller
      */
     public function updateRelease(Request $request, Package $package, Release $release)
     {
+        $this->checkReadOnly();
+        
         // Ensure the release belongs to the package
         if ($release->package_id !== $package->id) {
             abort(404);
@@ -862,6 +1011,8 @@ class PackageListViewController extends Controller
      */
     public function destroyRelease(Request $request, Package $package, Release $release)
     {
+        $this->checkReadOnly();
+        
         // Ensure the release belongs to the package
         if ($release->package_id !== $package->id) {
             abort(404);
@@ -1154,6 +1305,8 @@ class PackageListViewController extends Controller
      */
     public function reprocessRelease(Request $request, Package $package, Release $release)
     {
+        $this->checkReadOnly();
+        
         // Ensure the release belongs to the package
         if ($release->package_id !== $package->id) {
             abort(404);
@@ -1262,6 +1415,8 @@ class PackageListViewController extends Controller
      */
     public function reprocessReleaseWithNewVersion(Request $request, Package $package, Release $release)
     {
+        $this->checkReadOnly();
+        
         // Ensure the release belongs to the package
         if ($release->package_id !== $package->id) {
             abort(404);

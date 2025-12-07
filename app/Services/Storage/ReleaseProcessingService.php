@@ -48,6 +48,7 @@ class ReleaseProcessingService
      * @param Release $release The release model
      * @param ReleaseArtifact $artifact The artifact model
      * @param string $version The version string
+     * @param bool $includeReadme Whether to include README.md from incoming folder
      * @return array Returns ['path' => final tarball path, 'filename' => tarball filename]
      */
     public function processRelease(
@@ -55,7 +56,8 @@ class ReleaseProcessingService
         Package $package,
         Release $release,
         ReleaseArtifact $artifact,
-        string $version
+        string $version,
+        bool $includeReadme = false
     ): array {
         $storageService = new ReleaseStorageService();
         $fullUploadPath = $storageService->getFullPath($uploadedFilePath);
@@ -84,6 +86,11 @@ class ReleaseProcessingService
             
             // Step 4: Create CHANGELOG.md
             $this->createChangelog($tempDir, $package);
+            
+            // Step 4.25: Add README.md from incoming folder if requested
+            if ($includeReadme) {
+                $this->addPackageReadme($tempDir, $package);
+            }
             
             // Step 4.5: Generate Unity .meta files
             $this->generateMetaFiles($tempDir, $package);
@@ -586,6 +593,39 @@ class ReleaseProcessingService
             'changelog_path' => $changelogPath,
             'package_id' => $package->id,
             'releases_count' => $releases->count(),
+        ]);
+    }
+
+    /**
+     * Add README.md from incoming folder to the package
+     * 
+     * @param string $dir The temp directory where the package is being assembled
+     * @param Package $package The package model
+     */
+    private function addPackageReadme(string $dir, Package $package): void
+    {
+        $readmePath = "incoming/{$package->bundle_id}/README.md";
+        
+        if (!Storage::disk('local')->exists($readmePath)) {
+            Log::warning('README.md not found in incoming folder', [
+                'readme_path' => $readmePath,
+                'package_id' => $package->id,
+                'bundle_id' => $package->bundle_id,
+            ]);
+            return;
+        }
+        
+        $targetPath = $dir . DIRECTORY_SEPARATOR . 'README.md';
+        $readmeContent = Storage::disk('local')->get($readmePath);
+        
+        file_put_contents($targetPath, $readmeContent);
+        
+        Log::info('Added README.md from incoming folder', [
+            'readme_path' => $readmePath,
+            'target_path' => $targetPath,
+            'package_id' => $package->id,
+            'bundle_id' => $package->bundle_id,
+            'file_size' => strlen($readmeContent),
         ]);
     }
 

@@ -23,6 +23,8 @@ class ScopeController extends Controller
      */
     public function store(Request $request)
     {
+        $this->checkReadOnly();
+        
         $request->validate([
             'scope' => [
                 'required',
@@ -67,6 +69,8 @@ class ScopeController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->checkReadOnly();
+        
         $scope = Scope::findOrFail($id);
 
         $request->validate([
@@ -102,6 +106,8 @@ class ScopeController extends Controller
      */
     public function destroy($id)
     {
+        $this->checkReadOnly();
+        
         $scope = Scope::findOrFail($id);
         
         // Check if scope has packages

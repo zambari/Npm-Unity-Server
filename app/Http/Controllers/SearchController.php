@@ -153,6 +153,10 @@ class SearchController extends Controller
                 ? str_replace('+00:00', 'Z', $latestRelease->create_time->toIso8601String())
                 : now()->toIso8601String();
             
+            // Links (repository and homepage)
+            $object['package']['links'] = [];
+            $object['package']['links']['homepage'] = $package->homepage_url ?? '';
+            $object['package']['links']['repository'] = $package->repository_url ?? '';
         
             
             $json['objects'][] = $object;

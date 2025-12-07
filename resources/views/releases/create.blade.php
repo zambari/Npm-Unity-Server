@@ -20,6 +20,8 @@
             </div>
         @endif
 
+        <x-read-only-warning />
+
         <form method="POST" action="{{ route('packages.releases.store', $package->bundle_id) }}" enctype="multipart/form-data">
             @csrf
        
@@ -72,6 +74,19 @@
                     The <code>package.json</code> file will be automatically generated and added to the root of your package during processing.
                 </small>
             </div>
+
+            @if(isset($readmeExists) && $readmeExists)
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include_readme" name="include_readme" value="1" 
+                           {{ old('include_readme') ? 'checked' : '' }}>
+                    <label class="form-check-label" for="include_readme">
+                        Add package README file (file size: {{ number_format($readmeSize / 1024, 2) }} KB)
+                    </label>
+                    <div class="form-text">If enabled, README.md from incoming/{{ $package->bundle_id }}/ will be added to the tarball, overwriting any existing README.md from the uploaded package.</div>
+                </div>
+            </div>
+            @endif
 
             <div class="mb-3">
                 <label for="artifact" class="form-label">Package for processing: <span class="text-danger">*</span></label>

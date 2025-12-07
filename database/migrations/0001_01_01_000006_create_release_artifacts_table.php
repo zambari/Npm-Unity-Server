@@ -19,8 +19,10 @@ return new class extends Migration
                 $table->integer('status');
                 $table->string('upload_name', 255)->nullable();
                 $table->string('url_meta', 255)->nullable()->comment('Additional metadata about the URL');
+                $table->string('shasum', 40)->nullable();
                 $table->timestamp('upload_date')->nullable();
                 $table->timestamps();
+               
             });
         }
     }

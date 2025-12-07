@@ -18,41 +18,25 @@ Scope: any of below, or custom:<br>
     @endforelse
 </ul>
 <p>Total available packages: {{ $totalPackages }}</p>
-<div>
-    <p>Client IP address: {{ request()->ip() }}</p>
-    @php
-        $interfaces = [];
-        if (function_exists('net_get_interfaces')) {
-            $netInterfaces = net_get_interfaces();
-            if ($netInterfaces !== false) {
-                foreach ($netInterfaces as $name => $interface) {
-                    $ips = [];
-                    if (isset($interface['unicast'])) {
-                        foreach ($interface['unicast'] as $addr) {
-                            if (isset($addr['address'])) {
-                                $ips[] = $addr['address'];
-                            }
-                        }
-                    }
-                    if (!empty($ips)) {
-                        $interfaces[$name] = $ips;
-                    }
-                }
-            }
-        }
-    @endphp
-    @if (!empty($interfaces))
-        <p><strong>Server Network Interfaces:</strong></p>
-        <ul>
-            @foreach ($interfaces as $name => $ips)
-                <li><strong>{{ $name }}:</strong> {{ implode(', ', $ips) }}</li>
-            @endforeach
-        </ul>
-    @else
-        <p><em>Network interface information not available</em></p>
-    @endif
-</div>
 
+
+@php
+    $readOnlyToken = config('app.read_only_privilege_token', 'NONE');
+    $guestUser = \App\Models\User::where('email', 'guest@guest.com')
+        ->where('privileges', 'LIKE', '%' . $readOnlyToken . '%')
+        ->where('disabled', false)
+        ->first();
+@endphp
+@if($guestUser)
+    <div >
+      This server allows guest user access. Please log in as user <strong>guest@guest.com</strong> with password <strong>guest</strong> to browse packages in read only mode:
+    </div><br>
+    <div>
+<a href="{{ route('packages.index') }}" class="btn btn-primary">Browse Packages</a>
+</div>
+@endif
+
+</div>
 </div>
 
 </div>

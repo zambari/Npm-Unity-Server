@@ -13,11 +13,20 @@ Route::get('/', function () {
     return view('welcome', compact('scopes', 'totalPackages'));
 })->name('welcome');
 
+
+if (env('ENABLE_DB_OPERATIONS') == 'true') 
+{
+    // Database initialization endpoint (safe to call multiple times) - MUST be before wildcard routes
+    Route::get('/initializedb', [\App\Http\Controllers\DatabaseController::class, 'initialize'])->name('db.initialize');
+
+    // Database reset endpoint (WARNING: Deletes all data!) - MUST be before wildcard routes
+    Route::get('/resetdb', [\App\Http\Controllers\DatabaseController::class, 'reset'])->name('db.reset');
+}
+
 Route::get('/loginform', [\App\Http\Controllers\AuthController::class, 'showLogin']);
 Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLogin']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login');
 Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
-
 
 // Package management routes (available for authenticated users)
 Route::middleware(['admin'])->group(function () {
@@ -43,9 +52,6 @@ Route::middleware(['admin'])->group(function () {
     Route::post('/packages/{package}/releases/{release}/reprocess-new-version', [\App\Http\Controllers\PackageListViewController::class, 'reprocessReleaseWithNewVersion'])->name('packages.releases.reprocess-new-version');
 });
 
-// Database initialization endpoint (safe to call multiple times)
-Route::get('/initializedb', [\App\Http\Controllers\DatabaseController::class, 'initialize'])->name('db.initialize');
-
 // Static assets - must be before catch-all package routes
 Route::get('/favicon.png', function () {
     return response()->file(public_path('favicon.png'));
@@ -57,6 +63,7 @@ Route::middleware(['superuser'])->prefix('admin')->name('admin.')->group(functio
     Route::post('/users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
     Route::post('/users/{id}/toggle-disabled', [\App\Http\Controllers\UserController::class, 'toggleDisabled'])->name('users.toggle-disabled');
     Route::post('/users/{id}/reset-password', [\App\Http\Controllers\UserController::class, 'resetPassword'])->name('users.reset-password');
+    Route::post('/users/{id}/toggle-edit-privilege', [\App\Http\Controllers\UserController::class, 'toggleEditPrivilege'])->name('users.toggle-edit-privilege');
     
     // Scope management routes
     Route::get('/scopes', [\App\Http\Controllers\ScopeController::class, 'index'])->name('scopes');
@@ -65,19 +72,19 @@ Route::middleware(['superuser'])->prefix('admin')->name('admin.')->group(functio
     Route::put('/scopes/{id}', [\App\Http\Controllers\ScopeController::class, 'update'])->name('scopes.update');
     Route::delete('/scopes/{id}', [\App\Http\Controllers\ScopeController::class, 'destroy'])->name('scopes.destroy');
     
-    // Experiments routes (super-admin only)
-    Route::get('/experiments', [\App\Http\Controllers\ExperimentsController::class, 'index'])->name('experiments');
-    Route::post('/experiments/spawn-releases', [\App\Http\Controllers\ExperimentsController::class, 'spawnReleases'])->name('experiments.spawn-releases');
-    Route::post('/experiments/define-dependencies', [\App\Http\Controllers\ExperimentsController::class, 'defineDependencies'])->name('experiments.define-dependencies');
-    Route::get('/experiments/download-dump', [\App\Http\Controllers\ExperimentsController::class, 'downloadDump'])->name('experiments.download-dump');
-    Route::post('/experiments/restore-dump', [\App\Http\Controllers\ExperimentsController::class, 'restoreDump'])->name('experiments.restore-dump');
-    Route::post('/experiments/clear-data', [\App\Http\Controllers\ExperimentsController::class, 'clearData'])->name('experiments.clear-data');
-    Route::post('/experiments/nuke-data', [\App\Http\Controllers\ExperimentsController::class, 'nukeData'])->name('experiments.nuke-data');
-    Route::post('/experiments/delete-incoming-package', [\App\Http\Controllers\ExperimentsController::class, 'deleteIncomingPackage'])->name('experiments.delete-incoming-package');
-    Route::post('/experiments/delete-all-incoming-but-latest', [\App\Http\Controllers\ExperimentsController::class, 'deleteAllIncomingButLatest'])->name('experiments.delete-all-incoming-but-latest');
-    Route::post('/experiments/delete-processed-file', [\App\Http\Controllers\ExperimentsController::class, 'deleteProcessedFile'])->name('experiments.delete-processed-file');
-    Route::post('/experiments/delete-all-processed-but-latest', [\App\Http\Controllers\ExperimentsController::class, 'deleteAllProcessedButLatest'])->name('experiments.delete-all-processed-but-latest');
-    Route::post('/experiments/create-example-data', [\App\Http\Controllers\ExperimentsController::class, 'createExampleData'])->name('experiments.create-example-data');
+    // databaseadmin routes (super-admin only)
+    Route::get('/databaseadmin', [\App\Http\Controllers\DatabaseAdminController::class, 'index'])->name('databaseadmin');
+    Route::post('/databaseadmin/spawn-releases', [\App\Http\Controllers\DatabaseAdminController::class, 'spawnReleases'])->name('databaseadmin.spawn-releases');
+    Route::post('/databaseadmin/define-dependencies', [\App\Http\Controllers\DatabaseAdminController::class, 'defineDependencies'])->name('databaseadmin.define-dependencies');
+    Route::get('/databaseadmin/download-dump', [\App\Http\Controllers\DatabaseAdminController::class, 'downloadDump'])->name('databaseadmin.download-dump');
+    Route::post('/databaseadmin/restore-dump', [\App\Http\Controllers\DatabaseAdminController::class, 'restoreDump'])->name('databaseadmin.restore-dump');
+    Route::post('/databaseadmin/clear-data', [\App\Http\Controllers\DatabaseAdminController::class, 'clearData'])->name('databaseadmin.clear-data');
+    Route::post('/databaseadmin/nuke-data', [\App\Http\Controllers\DatabaseAdminController::class, 'nukeData'])->name('databaseadmin.nuke-data');
+    Route::post('/databaseadmin/delete-incoming-package', [\App\Http\Controllers\DatabaseAdminController::class, 'deleteIncomingPackage'])->name('databaseadmin.delete-incoming-package');
+    Route::post('/databaseadmin/delete-all-incoming-but-latest', [\App\Http\Controllers\DatabaseAdminController::class, 'deleteAllIncomingButLatest'])->name('databaseadmin.delete-all-incoming-but-latest');
+    Route::post('/databaseadmin/delete-processed-file', [\App\Http\Controllers\DatabaseAdminController::class, 'deleteProcessedFile'])->name('databaseadmin.delete-processed-file');
+    Route::post('/databaseadmin/delete-all-processed-but-latest', [\App\Http\Controllers\DatabaseAdminController::class, 'deleteAllProcessedButLatest'])->name('databaseadmin.delete-all-processed-but-latest');
+    Route::post('/databaseadmin/create-example-data', [\App\Http\Controllers\DatabaseAdminController::class, 'createExampleData'])->name('databaseadmin.create-example-data');
 });
 
 // NPM Protocol endpoints for Unity3D package manager

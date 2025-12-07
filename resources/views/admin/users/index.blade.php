@@ -61,6 +61,7 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Status</th>
+                        <th>Edit</th>
                         <th>Created</th>
                         <th>Actions</th>
                     </tr>
@@ -77,6 +78,19 @@
                                 @else
                                     <span class="badge bg-success">Active</span>
                                 @endif
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ route('admin.users.toggle-edit-privilege', $user->id) }}" style="display: inline;">
+                                    @csrf
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="editToggle{{ $user->id }}" 
+                                               {{ !$user->readOnlyUser() ? 'checked' : '' }} 
+                                               onchange="this.form.submit()">
+                                        <label class="form-check-label" for="editToggle{{ $user->id }}">
+                                            {{ $user->readOnlyUser() ? 'Read-only' : 'Edit' }}
+                                        </label>
+                                    </div>
+                                </form>
                             </td>
                             <td>{{ $user->created_at->format('Y-m-d H:i') }}</td>
                             <td>
@@ -121,7 +135,7 @@
                         </div>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center">No users found.</td>
+                            <td colspan="7" class="text-center">No users found.</td>
                         </tr>
                     @endforelse
                 </tbody>
