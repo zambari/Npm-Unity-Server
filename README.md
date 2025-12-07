@@ -8,7 +8,7 @@
 
 As we all know, Unity uses their own built in Package Manager. Wouldn't it be cool to be able to manage own flocks of snippets this way?
 
-<img src="docs/img/unity-package-manager.png" alt="PackageManager" width="550"/>
+<img src="docs/img/unity-package-manager.png" alt="Unity PackageManager" width="550"/>
 
 ### Why use packages
 
@@ -30,29 +30,52 @@ As we all know, Unity uses their own built in Package Manager. Wouldn't it be co
 - Developer oriented
 - Easy to use web editor, with features for declaring dependencies.
 - Prepares package.json for you - you just need to upload a zip.
-- Suitable for small teams
-
-
-
-### Limitations:
-
-- Not designed for large teams, as there is no real access control (Super user can create other users and add scopes and perform cleanup operations, but all users can publish all packages).
-- Doesn't strictly follow the npm protocol - barely enough to pass by Unity.
+- Suitable for small teams or solo developers.
 
 
 <img src="docs/img/PackageManagement.gif" alt="PackageManager" width="430"/>
 
 
+### Setup
+
+
+- Make sure you have a http server running. If you don't have a http server, you can use [XAMPP](https://www.apachefriends.org) or any other server with PHP >=8.2
+- Download and unpack release to a folder visible to a http server (htdocs)
+- If you want to use a 'proper' method, run `composer install` in the project folder. If not, unpack the provided `vendor.zip` folder. This is hacky but makes the project more 'self contained'
+- Copy `.env.example` file to `.env`. 
+- Edit the .env file, changing `ADMIN_ACCESS_ALLOWED = true`, change the default admin password.
+- If you want to use MySQL database, edit the `.env` file
+- You might also want to generate a new APP_KEY= (or just edit a few characters)
+- Log in as a super user to create scopes / categories, and normal users.
+
+If you run into trouble with your database, this document contains many details: 
+[In depth instruction on database setup](docs/DATABASE_SETUP.md)
+
+When logged in as super-user, you can also visit `/public/admin/databaseadmin` for dangerous and destructive features such as mysql dump/restore, nuking the database, seeding it with random packages and releases etc.
+
+Read more on super users [Here (authentication setup instructions)](docs/AUTHENTICATION_SETUP.md)
+
+Add your server to Unity Package Manager setup (in Project settings in modern versions of Unity) with the scopes added in the server.
+
 ### Back Story
 
-[Keijiro](https://private-user-images.githubusercontent.com/343936/399951228-3e97a9b7-e157-49e9-8998-e32280513e9e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjQ5NDc5MjIsIm5iZiI6MTc2NDk0NzYyMiwicGF0aCI6Ii8zNDM5MzYvMzk5OTUxMjI4LTNlOTdhOWI3LWUxNTctNDllOS04OTk4LWUzMjI4MDUxM2U5ZS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUxMjA1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MTIwNVQxNTEzNDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04NTg0ZTkyYmM0NTkwYjM1NmIwMTkxMjI2YTEyYTc1M2UwMDA0MDc4NWQ2MGM1YTIzNjIyYzk1NjNiNWQ2YTkyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.VZoqZsfCwy2HQWUs_xgOipuPOuW3nA7BUO6sr0UtGrU)
+I wanted to be able to host it on a basic PHP+MySQL combo, test locally, use locally, and be able to also have a publicly available database and endpoints. This would mean being able to cleanly install your packages without tampering with project structure.
+
+I wanted to try and learn something new, decided to finally take a look at Laravel, given that we now have Cursor, that has proven to be an amazing ride.
+
+
+
+[Keijiro](https://private-user-images.githubusercontent.com/343936/399951228-3e97a9b7-e157-49e9-8998-e32280513e9e.png)
 A while ago I discovered that Keijiro had good success, with publishing packages using NPM. https://gist.github.com/keijiro/f8c7e8ff29bfe63d86b888901b82644c But all that messing around with node.js, not everyone can live javascript, and not everyone has root access hosting.
 
-Typically running a package server is quite involved. Full blown package server is not for the faint hearted. Most require node.js, python, and ideally shell access to the server. Some have it, some don't. PHP is widely popular. 
+<img src="docs/img/keijiro-npm.png" alt="Keijiro npm" width="330"/>
+
+
+
+Typically running a package server is quite involved. Full blown package server is not for the faint hearted. Most require node.js, python, and ideally shell access to the server. Some have it, some don't. PHP is widely popular. This product has been made to be super user friendly, pretty much everything can be clicked-through the GUI.
 
 
 ### How does unity PackageManager work?
-
 
 NPM subset used by unity is very limited. Only really consists of making a request to:
 
@@ -63,7 +86,19 @@ Unit then simply queries (for all received package bundle).
 
 `/public/com.myscope.mypackage`
 
-This endpoint returns some metadata about the package, used to draw UI in package manager. One of the fields contain a download link 
+This endpoint returns some metadata about the package, used to draw UI in package manager. One of the fields contain a download link.
+While this looks very simple on paper, actually implementing it required jumping through some hoops.
+
+
+### Managing Tarballs and package.json  
+
+
+### Limitations:
+
+- Not designed for large teams, as there is no real access control (Super user can create other users and add scopes and perform cleanup operations, but all users can publish all packages).
+- Doesn't strictly follow the npm protocol - barely enough to pass by Unity.
+
+
 
 
 ### What's going on with scopes?
@@ -82,26 +117,12 @@ The server itself does not respect scopes (unless a flag in config is enabled), 
 <img src="docs/img/release-edit-view.gif" alt="PackageManager" width="430"/>
 
 
-### Setup
 
-I wanted to be able to host it on a basic PHP+MySQL combo, test locally, use locally, and be able to also have a publicly available database and endpoints. This would mean being able to cleanly install your packages without tampering with project structure.
+### Security
 
-I wanted to try and learn something new, decided to finally take a look at Laravel, given that we now have Cursor, that has proven to be an amazing ride.
+No way to have a fully private server - by declaring a scope you ale claiming part of the namespace, so the server is always public (even if not listed in global register like keijro).
+User passwords are sort of of protected, but super user needs to edit an .env flag, to be able to log in and reset password for another user. This thing is meant for a few people max, permission management would have to be added - maybe later. 
 
-There was a lot of exploring the unknown, installing composer and other tools that 
-
-But now, in this form, I would _expect_ if you know how to use an ftp server, than the only challenge might be with the database setup, fortunately, AI has prepared that document in advance:
-
-[In depth instruction on database setup](docs/DATABASE_SETUP.md)
-
-Also, if you manage to see the site without errors, next steps are on how to log in as super-user, create admin users, create scopes/categories:
-
-[Authentication setup (AI)](docs/AUTHENTICATION_SETUP.md)
-
-
-### Next steps
-
-I will try to first use it, if its actually useful, we'll see.
 
 
 ### Hacky bits cases
@@ -118,13 +139,8 @@ Uses "author " field in a hacky way - unity draws foldouts grouping packages com
 
 
 
+See also:
 
-[I didn't ask for this AI summary of this project at early stage](docs/AI_SUMMARY.md)
+https://docs.unity3d.com/2019.1/Documentation/Manual/cus-layout.html
 
-
-### Security
-
-No way to have a fully private server - by declaring a scope you ale claiming part of the namespace, so the server is always public (even if not listed in global register like keijro).
-User passwords are soot of protected, but super user needs to edit an .env flag, to be able to log in and reset password for another user. This thing is meant for a few people max, permission management would have to be added - maybe later. 
-
-
+https://docs.unity3d.com/2019.1/Documentation/Manual/upm-manifestPkg.html
