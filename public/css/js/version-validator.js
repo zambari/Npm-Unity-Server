@@ -193,15 +193,16 @@
         const buttonsContainer = document.createElement('div');
         buttonsContainer.className = 'version-bump-buttons mt-2 d-flex gap-2 flex-wrap';
         buttonsContainer.innerHTML = 
-            '<button type="button" class="btn btn-sm btn-outline-primary version-bump-major" title="Bump major version (X.0.0) - Use when breaking changes make it incompatible with previous versions">' +
-                '<strong>Major</strong> <small class="d-block" style="font-size: 0.7em; opacity: 0.8;">Breaking</small>' +
+         
+             '<button type="button" class="btn btn-sm btn-outline-secondary version-bump-major" title="Bump major version (X.0.0) - Use when breaking changes make it incompatible with previous versions">' +
+                '<strong class="text-muted">Major update +1.0.0</strong> <small class="d-block" style="font-size: 0.7em; opacity: 0.8;">Anyhing that breaks compatibility</small>' +
             '</button>' +
-            '<button type="button" class="btn btn-sm btn-outline-success version-bump-minor" title="Bump minor version (X.Y.0) - Use when adding new features that are backward compatible">' +
-                '<strong>Minor</strong> <small class="d-block" style="font-size: 0.7em; opacity: 0.8;">Feature</small>' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary  version-bump-minor" title="Bump minor version (X.Y.0) - Use when adding new features that are backward compatible">' +
+                '<strong>Minor update +0.1.0</strong> <small class="d-block" style="font-size: 0.7em; opacity: 0.8;">Backward compatible features.</small>' +
             '</button>' +
-            '<button type="button" class="btn btn-sm btn-outline-info version-bump-patch" title="Bump patch version (X.Y.Z) - Use for bug fixes and minor updates">' +
-                '<strong>Patch</strong> <small class="d-block" style="font-size: 0.7em; opacity: 0.8;">Fix</small>' +
-            '</button>';
+            '<button type="button" class="btn btn-sm btn-outline-secondary  version-bump-patch" title="Bump patch version (X.Y.Z) - Use for bug fixes and minor updates">' +
+                '<strong>Patch update +0.0.1</strong> <small class="d-block" style="font-size: 0.7em; opacity: 0.8;">Small changes, bugfixes.</small>' +
+            '</button> ';
         
         // Insert buttons after the input field
         versionInput.parentElement.appendChild(buttonsContainer);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -49,15 +50,31 @@ class AuthController extends Controller
             Session::put('super_user', true);
             Session::put('admin_email', env('ADMIN_EMAIL'));
             
+            // If remember me is checked, set a persistent remember token cookie
+            $remember = $request->has('remember') && $request->remember == '1';
+            $response = redirect()->route('admin.users');
+            
+            if ($remember) {
+                // Create a secure remember token (hash of username + password + app key)
+                // This allows validation without storing in database
+                $rememberToken = hash('sha256', env('ADMIN_USERNAME') . env('ADMIN_PASSWORD') . env('APP_KEY', 'default-key'));
+                // Store token in session for quick validation
+                Session::put('remember_token', $rememberToken);
+                // Set persistent cookie (30 days)
+                $cookie = Cookie::make('admin_remember_token', $rememberToken, 43200, '/', null, false, true); // 30 days, httpOnly
+                $response->cookie($cookie);
+            }
+            
             Log::info('User logged in (super-user)', [
                 'username' => $request->username,
                 'email' => env('ADMIN_EMAIL'),
+                'remember_me' => $remember,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'timestamp' => now()->toIso8601String(),
             ]);
             
-            return redirect()->route('admin.users');
+            return $response;
         }
 
         // Check database credentials (normal user)
@@ -67,7 +84,9 @@ class AuthController extends Controller
 
         if ($user && !$user->disabled && $user->verifyPassword($request->password)) {
             // Use Laravel's standard authentication so @auth works
-            Auth::login($user);
+            // Enable remember me if checkbox was checked
+            $remember = $request->has('remember') && $request->remember == '1';
+            Auth::login($user, $remember);
             Session::put('admin_authenticated', true);
             Session::put('super_user', false);
             
@@ -75,6 +94,7 @@ class AuthController extends Controller
                 'user_id' => $user->id,
                 'username' => $user->name,
                 'email' => $user->email,
+                'remember_me' => $remember,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'timestamp' => now()->toIso8601String(),
@@ -105,6 +125,11 @@ class AuthController extends Controller
         Session::forget('admin_authenticated');
         Session::forget('super_user');
         Session::forget('admin_email');
+        Session::forget('remember_token');
+        
+        // Clear remember me cookie
+        $response = redirect()->route('welcome');
+        $response->cookie(Cookie::forget('admin_remember_token'));
         
         Log::info('User logged out', [
             'user_id' => $userId,
@@ -116,6 +141,6 @@ class AuthController extends Controller
             'timestamp' => now()->toIso8601String(),
         ]);
         
-        return redirect()->route('welcome');
+        return $response;
     }
 }

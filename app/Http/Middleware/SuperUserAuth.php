@@ -16,8 +16,24 @@ class SuperUserAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!session('admin_authenticated') || !session('super_user')) {
-            return redirect()->route('welcome')->withErrors(['access' => 'Access denied. Super-user privileges required.']);
+        // Check if already authenticated via session
+        if (session('admin_authenticated') && session('super_user')) {
+            // Continue with access check below
+        } else {
+            // Check for remember token cookie (for super users)
+            $rememberToken = $request->cookie('admin_remember_token');
+            if ($rememberToken) {
+                // Validate the remember token by regenerating it with current credentials
+                $expectedToken = hash('sha256', env('ADMIN_USERNAME') . env('ADMIN_PASSWORD') . env('APP_KEY', 'default-key'));
+                if (hash_equals($expectedToken, $rememberToken)) {
+                    // Token is valid, restore session
+                    session(['admin_authenticated' => true, 'super_user' => true, 'admin_email' => env('ADMIN_EMAIL'), 'remember_token' => $rememberToken]);
+                } else {
+                    return redirect()->route('welcome')->withErrors(['access' => 'Access denied. Super-user privileges required.']);
+                }
+            } else {
+                return redirect()->route('welcome')->withErrors(['access' => 'Access denied. Super-user privileges required.']);
+            }
         }
 
         // Check if admin access is allowed via environment variable

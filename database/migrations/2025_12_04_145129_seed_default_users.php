@@ -15,7 +15,7 @@ return new class extends Migration
      {
         // Insert default scope
         DB::table('scopes')->insert([
-            'scope' => 'com.example.*',
+            'scope' => 'com.example',
             'display_name' => 'Example Package Collection',
         ]);
 
@@ -69,6 +69,5 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::table('users')->whereIn('email', ['zambari@gmail.com', 'test@test.com', 'guest@guest.com'])->delete();
     }
 };

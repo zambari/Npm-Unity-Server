@@ -17,11 +17,14 @@ return new class extends Migration
                 $table->string('bundle_id', 45)->unique()->comment('Unique package identifier (e.g., com.example.mypackage)');
                 $table->string('product_name', 45)->nullable()->comment('Display/product name');
                 $table->string('description', 255)->nullable();
+                $table->string('repository_url', 500)->nullable();
+                $table->string('homepage_url', 500)->nullable();
                 $table->integer('status')->nullable();
                 $table->boolean('disabled')->default(false);
                 $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
                 $table->foreignId('scope_id')->nullable()->constrained('scopes')->nullOnDelete();
                 $table->timestamps();
+      
             });
         }
     }

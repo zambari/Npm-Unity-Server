@@ -44,7 +44,7 @@
                                         <input type="text" class="form-control form-control-sm" 
                                                name="references[{{ $index }}][bundle_id]" 
                                                value="{{ old("references.$index.bundle_id", $dependency->bundle_id ?? '') }}" 
-                                               placeholder="com.example.package" required>
+                                               placeholder="com.example.package">
                                     </td>
                                     <td>
                                         <input type="text" class="form-control form-control-sm" 
@@ -65,7 +65,7 @@
                                     <input type="text" class="form-control form-control-sm" 
                                            name="references[0][bundle_id]" 
                                            value="{{ old('references.0.bundle_id', '') }}" 
-                                           placeholder="com.example.package" required>
+                                           placeholder="com.example.package">
                                 </td>
                                 <td>
                                     <input type="text" class="form-control form-control-sm" 
@@ -117,12 +117,12 @@
             addButton.addEventListener('click', function() {
                 const row = document.createElement('tr');
                 row.setAttribute('data-index', referenceIndex);
-                row.innerHTML = `
+                                row.innerHTML = `
                     <td>
                         <input type="text" class="form-control form-control-sm" 
                                name="references[${referenceIndex}][bundle_id]" 
                                value="" 
-                               placeholder="com.example.package" required>
+                               placeholder="com.example.package">
                     </td>
                     <td>
                         <input type="text" class="form-control form-control-sm" 
@@ -217,7 +217,7 @@
                                         <input type="text" class="form-control form-control-sm" 
                                                name="references[${referenceIndex}][bundle_id]" 
                                                value="${ref.bundle_id || ''}" 
-                                               placeholder="com.example.package" required>
+                                               placeholder="com.example.package">
                                     </td>
                                     <td>
                                         <input type="text" class="form-control form-control-sm" 

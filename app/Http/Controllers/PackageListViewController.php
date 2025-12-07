@@ -858,24 +858,14 @@ class PackageListViewController extends Controller
             'references.*.version' => 'nullable|string|max:45',
         ];
 
-        // Only require bundle_id if it's not the first release
-        // For first release, we just ignore entries without bundle_id (already filtered above)
-        if (!$isFirstRelease) {
-            $validationRules['references.*.bundle_id'] = 'required_with:references|string|max:255';
-        } else {
-            // For first release, bundle_id is optional (we'll just ignore empty ones)
-            $validationRules['references.*.bundle_id'] = 'nullable|string|max:255';
-        }
+        // Bundle ID is optional - empty references are filtered out before validation
+        // and won't be saved to the database
+        $validationRules['references.*.bundle_id'] = 'nullable|string|max:255';
 
         $validationMessages = [
             'version.required' => 'Version is required.',
             'processed_filename.regex' => 'Processed filename must be a valid .tgz or .tar.gz filename (alphanumeric, dots, dashes, underscores only).',
         ];
-
-        // Only add bundle_id validation message if it's not the first release
-        if (!$isFirstRelease) {
-            $validationMessages['references.*.bundle_id.required_with'] = 'Bundle ID is required for each reference.';
-        }
 
         // Only validate channel if feature is enabled
         if (config('app.use_feature_channels')) {
